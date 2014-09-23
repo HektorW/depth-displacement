@@ -2,7 +2,7 @@
   "name": "depth-displacement",
   "dependencies": {
     "requirejs": "~2.1.15",
-    "text": "~2.0.12",
+    "text": "git://github.com/requirejs/text.git",
     "three": "~0.68.0",
     "jquery": "~2.1.1"
   },

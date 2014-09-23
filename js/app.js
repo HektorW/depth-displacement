@@ -23,6 +23,7 @@ define([
 
     run: function() {
       this.update = this.update.bind(this);
+      this.resize = this.resize.bind(this);
 
       this.init();
       this.setupKernels();
@@ -34,22 +35,28 @@ define([
     init: function() {
       this.$el = $('#app');
 
-      this.width = window.innerWidth;
-      this.height = window.innerHeight;
-
       this.scene = new THREE.Scene();
       this.camera = new THREE.PerspectiveCamera(75, this.width / this.height, 0.1, 1000);
 
       this.renderer = new THREE.WebGLRenderer();
-      this.renderer.setSize(this.width, this.height);
       this.$el.append(this.renderer.domElement);
+
+      this.resize();
+      $(window).on('resize', this.resize);
+    },
+
+    resize: function() {
+      this.width = window.innerWidth;
+      this.height = window.innerHeight;
+      this.camera = new THREE.PerspectiveCamera(75, this.width / this.height, 0.1, 1000);
+      this.renderer.setSize(this.width, this.height);
     },
 
 
     setupKernels: function() {
       this.kernels.push([
          1,  1,  1,
-         1, -9,  1,
+         1, -8,  1,
          1,  1,  1
       ]);
     },
@@ -58,10 +65,6 @@ define([
     setupScene: function() {
       var geometry = new THREE.PlaneGeometry(2,1,1);
 
-
-      /*var material = new THREE.MeshBasicMaterial({
-        map: THREE.ImageUtils.loadTexture('res/flower.jpg')
-      });*/
       var material = new THREE.ShaderMaterial({
         uniforms: {
           texture: {
@@ -73,7 +76,8 @@ define([
             value: 9
           },
           kernel: {
-
+            type: '1fv',
+            value: this.kernels[0]
           }
         },
         vertexShader: simple_vert,
@@ -84,7 +88,7 @@ define([
       this.plane = new THREE.Mesh( geometry, material );
       this.scene.add(this.plane);
 
-      this.camera.position.z = 2;
+      this.camera.position.z = 1;
     },
 
     update: function(time) {

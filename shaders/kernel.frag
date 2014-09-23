@@ -1,13 +1,13 @@
 
-const int maxsize = 121;
+const int maxsize = 25;
 
-varying vec2 vUV;
+varying vec2 vUv;
 
-uniform sampler2D tDiffuse;
+uniform sampler2D texture;
+uniform vec2 textureResolution;
 
-/* uniform vec2 u_textureresolution;
-uniform float u_kernel[maxsize];
-uniform int u_kernelsize; */
+uniform float kernel[maxsize];
+uniform int kernelSize;
 
 
 
@@ -15,12 +15,10 @@ void main(void) {
   vec4 totalColor = vec4(0.0, 0.0, 0.0, 0.0);
   float totalValue = 0.0;
 
-  // vec2 onePixel = vec2(1, 1) / u_textureresolution;
   vec2 onePixel = vec2(1, 1) / vec2(1024, 512);
 
-  int mean = (u_kernelsize-1) / 2;
-
-  int size = u_kernelsize * u_kernelsize;
+  int mean = (kernelSize-1) / 2;
+  int size = kernelSize * kernelSize;
 
   float sample_i = 0.0;
   float sample_j = 0.0;
@@ -29,28 +27,37 @@ void main(void) {
       break;
     }
 
-    if (int(mod(float(i), float(u_kernelsize))) == 0) {
-      sample_i = float((i / u_kernelsize) - mean);
+    if (int(mod(float(i), float(kernelSize))) == 0) {
+      sample_i = float((i / kernelSize) - mean);
     }
 
-    sample_j = float(mod(float(i), float(u_kernelsize)) - float(mean));
+    sample_j = float(mod(float(i), float(kernelSize)) - float(mean));
     
-    vec4 col = texture2D(u_texture, texcoord + (onePixel * vec2(sample_i, sample_j)));
-    float value = u_kernel[i];
-    totalColor += col * value;
+    vec4 col = texture2D(texture, vUv + (onePixel * vec2(sample_i, sample_j)));
+    float value = kernel[i];
 
+    totalColor += col * value;
     totalValue += value;
   }
 
-  totalColor /= totalValue;
+  if (totalValue == 0.0) {
+    totalValue = 1.0;
+  }
 
-  vec4 color = vec4((totalColor).rgb, 1.0);
-  gl_FragColor = color;
+  totalColor /= totalValue;
+  gl_FragColor = vec4((totalColor).rgb, 1.0);
+  // gl_FragColor = vec4(kernel[0], kernel[0], kernel[0], 1.0);
 }
 
-/* uniform sampler2D texture;
+
+/* const int maxsize = 25;
+
+uniform sampler2D texture;
+uniform float kernel[maxsize];
+uniform int kernelSize;
 
 varying vec2 vUv;
+
 
 void main() {
   float values[9];
