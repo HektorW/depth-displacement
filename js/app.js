@@ -28,7 +28,8 @@ define([
       this.init();
       this.setupKernels();
       this.setupScene();
-      this.update(window.performance.now());
+      this.lastTime = performance.now();
+      this.update(performance.now());
     },
 
 
@@ -93,6 +94,11 @@ define([
 
     update: function(time) {
       requestAnimationFrame(this.update);
+
+      if (time - this.lastTime < 50.0) {
+        return;
+      }
+      this.lastTime = time;
 
       this.renderer.render(this.scene, this.camera);
     }

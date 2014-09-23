@@ -20,20 +20,20 @@ void main(void) {
   int mean = (kernelSize-1) / 2;
   int size = kernelSize * kernelSize;
 
-  float sample_i = 0.0;
-  float sample_j = 0.0;
+  float sampleX = 0.0;
+  float sampleY = 0.0;
   for (int i = 0; i < maxsize; i++) {
-    if (i > size) {
+    if (i >= size) {
       break;
     }
 
     if (int(mod(float(i), float(kernelSize))) == 0) {
-      sample_i = float((i / kernelSize) - mean);
+      sampleY = float((i / kernelSize) - mean);
     }
 
-    sample_j = float(mod(float(i), float(kernelSize)) - float(mean));
+    sampleX = float(mod(float(i), float(kernelSize)) - float(mean));
     
-    vec4 col = texture2D(texture, vUv + (onePixel * vec2(sample_i, sample_j)));
+    vec4 col = texture2D(texture, vUv + onePixel * vec2(sampleX, sampleY));
     float value = kernel[i];
 
     totalColor += col * value;
@@ -44,17 +44,13 @@ void main(void) {
     totalValue = 1.0;
   }
 
-  totalColor /= totalValue;
-  gl_FragColor = vec4((totalColor).rgb, 1.0);
-  // gl_FragColor = vec4(kernel[0], kernel[0], kernel[0], 1.0);
+  gl_FragColor = totalColor / totalValue;
 }
 
 
 /* const int maxsize = 25;
 
 uniform sampler2D texture;
-uniform float kernel[maxsize];
-uniform int kernelSize;
 
 varying vec2 vUv;
 
