@@ -1,7 +1,15 @@
 require.config({
   paths: {
     'three': '../node_modules/three/three',
-    'jquery': '../node_modules/jquery/dist/jquery'
+    'jquery': '../node_modules/jquery/dist/jquery',
+    'text': '../node_modules/text/text',
+
+    'shaders': '../shaders'
+  },
+  shim: {
+    'three': {
+      exports: 'THREE'
+    }
   }
 });
 
@@ -43,11 +51,11 @@ require(['app'], function(App) {
 
   // cancelAnimationFrame
   var cAF = 'ancelAnimationFrame';
-  w['r'+cAF] =
-    w['r'+cAF] ||
-    w['webkitR'+cAF] ||
-    w['mozR'+cAF] ||
-    w['msR'+cAF] ||
+  w['c'+cAF] =
+    w['c'+cAF] ||
+    w['webkitC'+cAF] ||
+    w['mozC'+cAF] ||
+    w['msC'+cAF] ||
     function(id) {
       return clearTimeout(id);
     };

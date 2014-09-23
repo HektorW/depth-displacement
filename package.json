@@ -1,8 +1,5 @@
 {
   "name": "depth-displacement",
-  "version": "0.0.0",
-  "description": "",
-  "main": "index.js",
   "dependencies": {
     "requirejs": "~2.1.15",
     "text": "~2.0.12",
@@ -17,8 +14,7 @@
     "type": "git",
     "url": "https://github.com/HektorW/depth-displacement.git"
   },
-  "author": "",
-  "license": "BSD-2-Clause",
+  "author": "Hektor Wallin",
   "bugs": {
     "url": "https://github.com/HektorW/depth-displacement/issues"
   },
