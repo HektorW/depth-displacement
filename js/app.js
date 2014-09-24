@@ -38,8 +38,10 @@ define([
 
       this.scene = new THREE.Scene();
       this.camera = new THREE.PerspectiveCamera(75, this.width / this.height, 0.1, 1000);
+      // this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 1000);
 
       this.renderer = new THREE.WebGLRenderer();
+      // this.renderer.setClearColor(0xffffff, 1);
       this.$el.append(this.renderer.domElement);
 
       this.resize();
@@ -47,26 +49,40 @@ define([
     },
 
     resize: function() {
-      this.width = window.innerWidth;
-      this.height = window.innerHeight;
-      this.camera = new THREE.PerspectiveCamera(75, this.width / this.height, 0.1, 1000);
+      // this.width = 512;
+      var w = this.width = window.innerWidth;
+      // this.height = 512;
+      var h = this.height = window.innerHeight;
+
+      this.camera.aspect = this.width / this.height;
+      // this.camera.left = w / -2;
+      // this.camera.right = w / 2;
+      // this.camera.top = h / 2;
+      // this.camera.bottom = h / -2;
+      this.camera.updateProjectionMatrix();
+
       this.renderer.setSize(this.width, this.height);
     },
 
 
     setupKernels: function() {
-      this.kernels.push([
+      /*this.kernels.push([
          1,  1,  1,
          1, -8,  1,
          1,  1,  1
+      ]);*/
+      this.kernels.push([
+        -2, -1,  0,
+        -1,  1,  1,
+         0,  1,  2
       ]);
     },
 
 
     setupScene: function() {
-      var geometry = new THREE.PlaneGeometry(2,1,1);
+      var geometry = new THREE.PlaneGeometry(1,1,1);
 
-      var material = new THREE.ShaderMaterial({
+      this.material = new THREE.ShaderMaterial({
         uniforms: {
           texture: {
             type: 't',
@@ -74,11 +90,11 @@ define([
           },
           kernelSize: {
             type: 'i',
-            value: 9
+            value: 0
           },
           kernel: {
             type: '1fv',
-            value: this.kernels[0]
+            value: Array(25).fill(0)
           }
         },
         vertexShader: simple_vert,
@@ -86,10 +102,10 @@ define([
       });
 
 
-      this.plane = new THREE.Mesh( geometry, material );
-      this.scene.add(this.plane);
+      this.plane = new THREE.Mesh( geometry, this.material );
+      this.scene.add( this.plane );
 
-      this.camera.position.z = 1;
+      this.camera.position.z = 0.65;
     },
 
     update: function(time) {
@@ -99,6 +115,12 @@ define([
         return;
       }
       this.lastTime = time;
+
+      var kernel = this.kernels[0];
+      for (var i = kernel.length; i--; ) {
+        this.material.uniforms.kernel.value[i] = kernel[i];
+      }
+      this.material.uniforms.kernelSize.value = Math.sqrt(kernel.length);
 
       this.renderer.render(this.scene, this.camera);
     }

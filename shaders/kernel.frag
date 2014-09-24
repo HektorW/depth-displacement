@@ -44,16 +44,18 @@ void main(void) {
     totalValue = 1.0;
   }
 
-  gl_FragColor = totalColor / totalValue;
+  vec4 color = totalColor / totalValue;
+  // float val = (color.r + color.g + color.b) / 3.0;
+
+  // gl_FragColor = vec4(val, val, val, 1.0);
+  gl_FragColor = color;
 }
 
 
-/* const int maxsize = 25;
-
+/*
 uniform sampler2D texture;
 
 varying vec2 vUv;
-
 
 void main() {
   float values[9];
