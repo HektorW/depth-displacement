@@ -37,11 +37,16 @@ define([
       this.$el = $('#app');
 
       this.scene = new THREE.Scene();
-      this.camera = new THREE.PerspectiveCamera(75, this.width / this.height, 0.1, 1000);
-      // this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 1000);
+      // this.camera = new THREE.PerspectiveCamera(75, this.width / this.height, 0.1, 1000);
+      // this.camera = new THREE.OrthographicCamera(-window.innerWidth / 2, window.innerWidth / 2, window.innerHeight / 2, -window.innerHeight / 2, -50, 100);
+      this.camera = new THREE.OrthographicCamera( window.innerWidth / - 2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / - 2, - 500, 1000 );
+
+      this.camera.position.x = 2;
+      this.camera.position.y = 1;
+      this.camera.position.z = 2;
 
       this.renderer = new THREE.WebGLRenderer();
-      // this.renderer.setClearColor(0xffffff, 1);
+      this.renderer.setClearColor(0xffffff, 1);
       this.$el.append(this.renderer.domElement);
 
       this.resize();
@@ -49,16 +54,18 @@ define([
     },
 
     resize: function() {
-      // this.width = 512;
-      var w = this.width = window.innerWidth;
-      // this.height = 512;
-      var h = this.height = window.innerHeight;
+      this.width = window.innerWidth;
+      this.height = window.innerHeight;
 
-      this.camera.aspect = this.width / this.height;
-      // this.camera.left = w / -2;
-      // this.camera.right = w / 2;
-      // this.camera.top = h / 2;
-      // this.camera.bottom = h / -2;
+      if (this.camera instanceof THREE.PerspectiveCamera) {
+        this.camera.aspect = this.width / this.height;
+      } else {
+        this.camera.left = this.width / -2;
+        this.camera.right = this.width / 2;
+        this.camera.top = this.height / 2;
+        this.camera.bottom = this.height / -2;
+      }
+
       this.camera.updateProjectionMatrix();
 
       this.renderer.setSize(this.width, this.height);
@@ -66,11 +73,11 @@ define([
 
 
     setupKernels: function() {
-      /*this.kernels.push([
+      this.kernels.push([
          1,  1,  1,
          1, -8,  1,
          1,  1,  1
-      ]);*/
+      ]);
       this.kernels.push([
         -2, -1,  0,
         -1,  1,  1,
@@ -98,7 +105,8 @@ define([
           }
         },
         vertexShader: simple_vert,
-        fragmentShader: kernel_frag
+        fragmentShader: kernel_frag,
+        side: THREE.DoubleSide
       });
 
 
@@ -121,6 +129,10 @@ define([
         this.material.uniforms.kernel.value[i] = kernel[i];
       }
       this.material.uniforms.kernelSize.value = Math.sqrt(kernel.length);
+
+      this.camera.position.x = Math.cos( time * 0.001 ) * 5;
+      this.camera.position.z = Math.sin( time * 0.001 ) * 5;
+      this.camera.lookAt( this.scene.position );
 
       this.renderer.render(this.scene, this.camera);
     }
