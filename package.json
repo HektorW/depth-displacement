@@ -4,7 +4,8 @@
     "requirejs": "~2.1.15",
     "text": "git://github.com/requirejs/text.git",
     "three": "~0.68.0",
-    "jquery": "~2.1.1"
+    "jquery": "~2.1.1",
+    "underscore": "~1.7.0"
   },
   "devDependencies": {},
   "scripts": {

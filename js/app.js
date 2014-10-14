@@ -1,31 +1,54 @@
 define([
   'jquery',
+  'underscore',
   'three',
 
+  'stats',
+
+  'settings',
+
   'text!shaders/simple.vert',
+  'text!shaders/displace.vert',
+  'text!shaders/screen.vert',
   'text!shaders/color.frag',
+  'text!shaders/filter.frag',
   'text!shaders/kernel.frag'
 ], function(
   $,
+  _,
   THREE,
 
+  Stats,
+
+  Settings,
+
+  screen_vert,
+  displace_vert,
   simple_vert,
   color_frag,
+  filter_frag,
   kernel_frag
 ) {
 
   var App = {
+    active: true,
+
     scene: null,
     camera: null,
     renderer: null,
 
     kernels: [],
 
+    fpsms: 1000 / 24,
+
+    planeResolution: 64,
+
     run: function() {
       this.update = this.update.bind(this);
       this.resize = this.resize.bind(this);
 
       this.init();
+      this.loadTextures();
       this.setupKernels();
       this.setupScene();
       this.lastTime = performance.now();
@@ -37,20 +60,51 @@ define([
       this.$el = $('#app');
 
       this.scene = new THREE.Scene();
-      // this.camera = new THREE.PerspectiveCamera(75, this.width / this.height, 0.1, 1000);
+      this.camera = new THREE.PerspectiveCamera(75, this.width / this.height, 0.1, 1000);
       // this.camera = new THREE.OrthographicCamera(-window.innerWidth / 2, window.innerWidth / 2, window.innerHeight / 2, -window.innerHeight / 2, -50, 100);
-      this.camera = new THREE.OrthographicCamera( window.innerWidth / - 2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / - 2, - 500, 1000 );
-
-      this.camera.position.x = 2;
-      this.camera.position.y = 1;
-      this.camera.position.z = 2;
+      // this.camera = new THREE.OrthographicCamera( window.innerWidth / - 2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / - 2, - 500, 1000 );
 
       this.renderer = new THREE.WebGLRenderer();
       this.renderer.setClearColor(0xffffff, 1);
       this.$el.append(this.renderer.domElement);
 
+
+      this.renderTarget = new THREE.WebGLRenderTarget(this.planeResolution, this.planeResolution);
+
+
       this.resize();
       $(window).on('resize', this.resize);
+      $(window).on('blur', $.proxy(function() { this.active = false; }, this));
+      $(window).on('focus', $.proxy(function() { this.active = true; }, this));
+
+      Settings.init();
+
+      this.stats = new Stats();
+      this.stats.domElement.style.position = 'fixed';
+      this.stats.domElement.style.left = '0px';
+      this.stats.domElement.style.top = '0px';
+      $('body').append(this.stats.domElement);
+    },
+
+    loadTextures: function() {
+      var textures = this.textures = {};
+
+      var names = [
+        'hektor_under_crop',
+        'hektor_above_crop',
+        'foot_crop',
+        'face',
+        'flower',
+        'obama',
+        'house'
+      ];
+
+      Settings.values.texture = names[0];
+      Settings.gui.add(Settings.values, 'texture', names);
+
+      _.each(names, function(name) {
+        textures[name] = THREE.ImageUtils.loadTexture('res/' + name + '.jpg');
+      });
     },
 
     resize: function() {
@@ -87,13 +141,16 @@ define([
 
 
     setupScene: function() {
-      var geometry = new THREE.PlaneGeometry(1,1,1);
+      this.screenPlane = new THREE.PlaneGeometry(1, 1);
 
-      this.material = new THREE.ShaderMaterial({
+
+      var geometry = new THREE.PlaneGeometry(1,1, this.planeResolution, this.planeResolution);
+
+      this.kernelMaterial = new THREE.ShaderMaterial({
         uniforms: {
           texture: {
             type: 't',
-            value: THREE.ImageUtils.loadTexture('res/flower.jpg')
+            value: THREE.ImageUtils.loadTexture('res/hektor_under_crop.jpg')
           },
           kernelSize: {
             type: 'i',
@@ -110,31 +167,112 @@ define([
       });
 
 
-      this.plane = new THREE.Mesh( geometry, this.material );
+      this.filterMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+          texture: {
+            type: 't',
+            value: this.textures[Settings.values.texture]
+          },
+          filterType: {
+            type: 'i',
+            value: 0
+          }
+        },
+        vertexShader: simple_vert,
+        fragmentShader: filter_frag,
+        side: THREE.DoubleSide
+      });
+
+
+      this.displaceMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+          heightTexture: {
+            type: 't',
+            value: THREE.ImageUtils.loadTexture('res/face.jpg')
+          },
+          heightValue: {
+            type: 'f',
+            value: 0.0
+          },
+          filterType: {
+            type: 'i',
+            value: 0
+          }
+        },
+        vertexShader: displace_vert,
+        fragmentShader: filter_frag,
+        side: THREE.DoubleSide
+      });
+
+
+      this.plane = new THREE.Mesh( geometry, this.displaceMaterial );
       this.scene.add( this.plane );
 
       this.camera.position.z = 0.65;
     },
 
-    update: function(time) {
-      requestAnimationFrame(this.update);
+    update: function() {
+      setTimeout(this.update, 0);
 
-      if (time - this.lastTime < 50.0) {
+      var time = performance.now();
+      if (time - this.lastTime <= this.fpsms || !this.active) {
         return;
       }
       this.lastTime = time;
 
-      var kernel = this.kernels[0];
-      for (var i = kernel.length; i--; ) {
-        this.material.uniforms.kernel.value[i] = kernel[i];
-      }
-      this.material.uniforms.kernelSize.value = Math.sqrt(kernel.length);
 
-      this.camera.position.x = Math.cos( time * 0.001 ) * 5;
-      this.camera.position.z = Math.sin( time * 0.001 ) * 5;
+
+
+      var material = this.filterMaterial;
+      var kernelIndex = -1;
+      switch (Settings.values.filter) {
+        case 'none':
+          material.uniforms.filterType = 0;
+          break;
+        case 'grayscale':
+          material.uniforms.filterType = 1;
+          break;
+        case 'luminosity':
+          material.uniforms.filterType = 2;
+          break;
+        case 'edge':
+          material = this.kernelMaterial;
+          kernelIndex = 0;
+          break;
+        case 'embose':
+          material = this.kernelMaterial;
+          kernelIndex = 1;
+          break;
+      }
+
+      var uniforms = material.uniforms;
+      
+      // bind kernels
+      if (kernelIndex !== -1) {
+        var kernel = this.kernels[kernelIndex];
+        var kernelValues = uniforms.kernel.value;
+
+        for (var i = kernel.length; i--; ) {
+          kernelValues[i] = kernel[i];
+        }
+        uniforms.kernelSize.value = Math.sqrt(kernel.length);
+      }
+
+      uniforms.texture.value = this.textures[Settings.values.texture];
+
+
+      this.renderer.render(this.scene, this.camera, this.renderTarget, true);
+      // this.renderer.render(this.scene, this.camera);
+
+      this.displaceMaterial.uniforms.heightValue.value = Settings.values.height;
+      // this.displaceMaterial.uniforms.heightTexture.value = this.textures[Settings.values.texture];
+      // this.displaceMaterial.uniforms.heightTexture.value = this.renderTarget;
+
+      this.camera.position.x = Math.cos( time * 0.001 ) * 0.7;
       this.camera.lookAt( this.scene.position );
 
       this.renderer.render(this.scene, this.camera);
+      this.stats.update();
     }
   };
 

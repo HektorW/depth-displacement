@@ -3,12 +3,23 @@ require.config({
     'three': '../node_modules/three/three',
     'jquery': '../node_modules/jquery/dist/jquery',
     'text': '../node_modules/text/text',
+    'underscore': '../node_modules/underscore/underscore',
+
+    'dat.gui': 'libs/dat.gui',
+    'stats': 'libs/stats',
+    'events': 'libs/events',
 
     'shaders': '../shaders'
   },
   shim: {
     'three': {
       exports: 'THREE'
+    },
+    'dat.gui': {
+      exports: 'dat'
+    },
+    'stats': {
+      exports: 'Stats'
     }
   }
 });
