@@ -9,18 +9,6 @@ uniform vec2 textureResolution;
 uniform float kernel[maxsize];
 uniform int kernelSize;
 
-
-vec4 grayscale(vec4 color) {
-  float val = (color.r + color.g + color.b) / 3.0;
-  return vec4(val, val, val, color.a);
-}
-
-
-vec4 luminosity(vec4 color) {
-  float v = (0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b) / 3.0;
-  return vec4(v, v, v, color.a);
-}
-
 void main(void) {
   vec4 totalColor = vec4(0.0, 0.0, 0.0, 0.0);
   float totalValue = 0.0;
@@ -57,9 +45,6 @@ void main(void) {
   vec4 color = totalColor / totalValue;
 
   gl_FragColor = color;
-  // gl_FragColor = grayscale(color);
-  // gl_FragColor = grayscale(texture2D(texture, vUv));
-  gl_FragColor = luminosity(texture2D(texture, vUv));
 }
 
 

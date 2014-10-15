@@ -41,7 +41,7 @@ define([
 
     fpsms: 1000 / 24,
 
-    planeResolution: 64,
+    planeResolution: 512,
 
     run: function() {
       this.update = this.update.bind(this);
@@ -59,10 +59,10 @@ define([
     init: function() {
       this.$el = $('#app');
 
+      this.screenScene = new THREE.Scene();
+
       this.scene = new THREE.Scene();
       this.camera = new THREE.PerspectiveCamera(75, this.width / this.height, 0.1, 1000);
-      // this.camera = new THREE.OrthographicCamera(-window.innerWidth / 2, window.innerWidth / 2, window.innerHeight / 2, -window.innerHeight / 2, -50, 100);
-      // this.camera = new THREE.OrthographicCamera( window.innerWidth / - 2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / - 2, - 500, 1000 );
 
       this.renderer = new THREE.WebGLRenderer();
       this.renderer.setClearColor(0xffffff, 1);
@@ -91,7 +91,7 @@ define([
 
       var names = [
         'hektor_under_crop',
-        'hektor_above_crop',
+        'hektor_over_crop',
         'foot_crop',
         'face',
         'flower',
@@ -111,15 +111,7 @@ define([
       this.width = window.innerWidth;
       this.height = window.innerHeight;
 
-      if (this.camera instanceof THREE.PerspectiveCamera) {
-        this.camera.aspect = this.width / this.height;
-      } else {
-        this.camera.left = this.width / -2;
-        this.camera.right = this.width / 2;
-        this.camera.top = this.height / 2;
-        this.camera.bottom = this.height / -2;
-      }
-
+      this.camera.aspect = this.width / this.height;
       this.camera.updateProjectionMatrix();
 
       this.renderer.setSize(this.width, this.height);
@@ -141,7 +133,10 @@ define([
 
 
     setupScene: function() {
-      this.screenPlane = new THREE.PlaneGeometry(1, 1);
+      this.screenPlane = new THREE.Mesh(
+        new THREE.PlaneGeometry(1, 1)
+      );
+      this.screenScene.add(this.screenPlane);
 
 
       var geometry = new THREE.PlaneGeometry(1,1, this.planeResolution, this.planeResolution);
@@ -188,7 +183,7 @@ define([
         uniforms: {
           heightTexture: {
             type: 't',
-            value: THREE.ImageUtils.loadTexture('res/face.jpg')
+            value: this.renderTarget
           },
           heightValue: {
             type: 'f',
@@ -227,13 +222,13 @@ define([
       var kernelIndex = -1;
       switch (Settings.values.filter) {
         case 'none':
-          material.uniforms.filterType = 0;
+          material.uniforms.filterType.value = 0;
           break;
         case 'grayscale':
-          material.uniforms.filterType = 1;
+          material.uniforms.filterType.value = 1;
           break;
         case 'luminosity':
-          material.uniforms.filterType = 2;
+          material.uniforms.filterType.value = 2;
           break;
         case 'edge':
           material = this.kernelMaterial;
@@ -257,18 +252,18 @@ define([
         }
         uniforms.kernelSize.value = Math.sqrt(kernel.length);
       }
-
       uniforms.texture.value = this.textures[Settings.values.texture];
 
 
-      this.renderer.render(this.scene, this.camera, this.renderTarget, true);
-      // this.renderer.render(this.scene, this.camera);
+
+      this.screenPlane.material = material;
+      this.renderer.render(this.screenScene, this.camera, this.renderTarget, true);
+
 
       this.displaceMaterial.uniforms.heightValue.value = Settings.values.height;
-      // this.displaceMaterial.uniforms.heightTexture.value = this.textures[Settings.values.texture];
       // this.displaceMaterial.uniforms.heightTexture.value = this.renderTarget;
 
-      this.camera.position.x = Math.cos( time * 0.001 ) * 0.7;
+      this.camera.position.x = Math.cos( time * 0.001 ) * Settings.values.cameraMove;
       this.camera.lookAt( this.scene.position );
 
       this.renderer.render(this.scene, this.camera);
